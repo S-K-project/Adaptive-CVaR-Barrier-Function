@@ -196,39 +196,6 @@ def load_data_from_controller(env, controllers = []):
     return (state_histories, control_inputs_list, h_values_list, beta_values_list, cons_values_list,
             obs_state_list, nominal_inputs_list, velocities_list, cost_list)
 
-def create_figure_and_axes():
-    """
-    Create a figure and subplots for the animation.
-    """
-    fig = plt.figure(figsize=(12, 8))
-    # Adjust spacing and margins
-    fig.subplots_adjust(
-        left=0.09,    # Left margin (fraction of figure width)
-        right=0.95,   # Right margin
-        top=0.95,     # Top margin
-        bottom=0.05,  # Bottom margin
-        wspace=0.2,   # Space between columns
-        hspace=0.2    # Space between rows
-    )
-
-    gs = fig.add_gridspec(4, 2, width_ratios=[1, 1], height_ratios=[1, 1, 1, 1])
-
-    ax_left = fig.add_subplot(gs[0:2, 0])  
-    ax_cost = fig.add_subplot(gs[3, 0])
-
-    ax_beta = fig.add_subplot(gs[2, 0])    
-    ax_h = fig.add_subplot(gs[0:2, 1])      
-    ax_margin = fig.add_subplot(gs[2, 1])    
-    ax_u = fig.add_subplot(gs[3, 1])     
-
-    # ax_factor = fig.add_subplot(gs[3, :])  # bottom row, spanning both columns
-    # ax_cost = fig.add_subplot(gs[3, :])  # bottom row, spanning both columns
-    gs.update(wspace=0.2, hspace=0.5)
-
-
-    return fig, ax_left, ax_beta, ax_h, ax_margin, ax_u, ax_cost
-
-
 def init_obstacles(ax_left, obs_state_list, env):
     obstacle_patches = []
     obs_patches_original = []
@@ -258,30 +225,6 @@ def init_obstacles(ax_left, obs_state_list, env):
         
     return obstacle_patches, obs_patches_original, obstacle_texts
 
-def init_uncertainty(ax_left, env, controllers):
-    obstacle_uncert_scatter = []
-    obstacle_uncert_circles = []
-    # Uncertainty scatter and circle
-    for i, obs in enumerate(env.obstacles):
-        samples = controllers[0].obs_wx_samples[i]
-        if samples.size > 0:
-            uncert_scatter = ax_left.scatter(samples[:, 0], samples[:, 1],
-                                                color='red', s=10, label='Uncertainty', alpha=0.5)
-            center = np.mean(samples, axis=0)
-            distances = np.linalg.norm(samples - center, axis=1)
-            uncert_radius = distances.max()
-        else:
-            uncert_scatter = ax_left.scatter([], [], color='red', s=10, label='Uncertainty', alpha=0.5)
-            center = (0, 0)
-            uncert_radius = 0
-        uncert_circle = Circle(center, uncert_radius, edgecolor='red', facecolor='red',
-                                alpha=0.3, fill=True, lw=2)
-        ax_left.add_patch(uncert_circle)
-
-        obstacle_uncert_scatter.append(uncert_scatter)
-        obstacle_uncert_circles.append(uncert_circle)
-    
-    return obstacle_uncert_scatter, obstacle_uncert_circles
 
 def init_robots(ax_left, env):
     scatters = []
@@ -370,52 +313,7 @@ def init_lines(ax_h, ax_margin, ax_u, ax_beta, env):
     
     return (lines_h, lines_margin, lines_u1, lines_u2,
             lines_beta, lines_beta_u, lines_beta_u_bar, lines_nom_u1, lines_nom_u2, lines_cost)
-    
-def set_axes_and_legends(ax_left, ax_h, ax_margin, ax_u, ax_beta, env, ax_cost=None):
-    ax_left.set_aspect('equal', adjustable='box')
 
-    ax_left.set_xlim(env.mapsize[0]-0.2, env.mapsize[1]+0.2)
-    ax_left.set_ylim(env.mapsize[2], env.mapsize[3])
-    ax_left.set_xlabel("x (m)", labelpad=0, fontsize=12)
-    ax_left.set_ylabel("y (m)", labelpad=0, fontsize=12)
-    # ax_left.set_title("Robot Position", fontsize=12)
-    ax_left.grid(False)
-
-    # ax_h.set_aspect('auto')
-    pos_left = ax_left.get_position()
-    pos_h = ax_h.get_position()
-    ax_h.set_position([pos_h.x0, pos_left.y0, pos_h.width, pos_left.height])
-
-    # ax_h.set_title('CBF Value',fontsize=12)
-    ax_h.set_xlabel('Time Step', labelpad=0,fontsize=12)
-    ax_h.set_ylabel('h(x_t)', labelpad=0,fontsize=12)
-    # ax_h.legend()
-    ax_h.grid(False)
-
-    ax_margin.set_title('Closest Dist to Obs', fontsize=12)
-    ax_margin.set_xlabel('Time Step', labelpad=0, fontsize=12)
-    ax_margin.set_ylabel('Closest Dist to Obs', labelpad=0, fontsize=12)
-    # ax_margin.legend()
-    ax_margin.grid(False)
-
-    ax_u.set_title('Control Inputs', fontsize=12)
-    ax_u.set_xlabel('Time Step', labelpad=0, fontsize=12)
-    ax_u.set_ylabel('Control Input', labelpad=0, fontsize=12)
-    # ax_u.legend()
-    ax_u.grid(False)
-
-    ax_beta.set_title('Risk Level', fontsize=12)
-    ax_beta.set_xlabel('Time Step', labelpad=0, fontsize=12)
-    ax_beta.set_ylabel(r'Risk Level $\beta_k$', labelpad=0, fontsize=12)
-    ax_beta.legend()
-    ax_beta.grid(False)
-    
-    if ax_cost is not None:
-        ax_cost.set_title('Cost Over Time', fontsize=12)    
-        ax_cost.set_xlabel('Time Step', labelpad=0, fontsize=12)
-        ax_cost.set_ylabel('Cost Value', labelpad=0, fontsize=12)
-        # ax_cost.legend()
-        ax_cost.grid(False)
 
 def set_y_axis_limits(ax_h, ax_margin, ax_u, ax_beta):
     ax_h.set_ylim(-0.5, 15.0)
@@ -424,40 +322,6 @@ def set_y_axis_limits(ax_h, ax_margin, ax_u, ax_beta):
     # ax_beta.set_ylim(-0.1, 0.5)
     ax_beta.set_ylim(-0.1, 1.1)
 
-       
-def compute_influence_factors(env, num, compute_factor_and_params):
-    # Use time_index = num - 1 (or 0 if num is 0) for indexing into your state histories.
-    time_index = num - 1 if num > 0 else 0
-
-    # 1) For each robot, find the obstacle that has the most influence.
-    robot_factors = [1.0] * len(env.robots)
-    robot_best_obs = [-1] * len(env.robots)
-    for i in range(len(env.robots)):
-        best_factor = 0.0
-        best_j = -1
-        for j in range(len(env.obstacles)):
-            f, _, _, _ = compute_factor_and_params(i, j, time_index)
-            if f > best_factor:
-                best_factor = f
-                best_j = j
-        robot_factors[i] = best_factor
-        robot_best_obs[i] = best_j
-
-    # 2) For each obstacle, find the robot that has the most influence.
-    obstacle_factors = [1.0] * len(env.obstacles)
-    obstacle_best_robot = [-1] * len(env.obstacles)
-    for j in range(len(env.obstacles)):
-        best_factor = 0.0
-        best_i = -1
-        for i in range(len(env.robots)):
-            f, _, _, _ = compute_factor_and_params(i, j, time_index)
-            if f > best_factor:
-                best_factor = f
-                best_i = i
-        obstacle_factors[j] = best_factor
-        obstacle_best_robot[j] = best_i
-
-    return robot_factors, robot_best_obs, obstacle_factors, obstacle_best_robot
 
 def compute_closest_obstacle_factors(env, num, compute_factor_and_params, state_histories, obs_state_list):
     time_index = num - 1 if num > 0 else 0
