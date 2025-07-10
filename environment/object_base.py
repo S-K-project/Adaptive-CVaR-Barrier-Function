@@ -219,8 +219,8 @@ class ObjectBase:
         """
         self.update_target()
         
-        _, v_des = self.nominal_input(self.x_curr, self.target)
-        # v_des = 2.0 # TODO u max is useless if set vdes as 2.0
+        # _, v_des = self.nominal_input(self.x_curr, self.target)
+        v_des = 2.0 # TODO u max is useless if set vdes as 2.0
             
         theta = np.arctan2(self.velocity_xy[1, 0], self.velocity_xy[0, 0])
         return FullState(

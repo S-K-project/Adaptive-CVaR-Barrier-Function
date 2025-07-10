@@ -29,9 +29,9 @@ def main(htype, S, beta, show_ani, save_ani, time_total, ctrl_type):
         "S": S,
     }
 
-    config_folder = SCRIPT_DIR +'/config/' + 'demo_case/' 
-    config_folder = SCRIPT_DIR +'/config/' + 'obstacles_20_noise0.05/seed14_noise0.05_obs8_umax0.9_besfm_umax0.9_besfm/' 
-    # config_folder = SCRIPT_DIR +'/config/' + 'video20obs/seed13_noise0.025_obs8_umax0.9_besfm_umax0.3_besfm/' 
+    # config_folder = SCRIPT_DIR +'/config/' + 'demo_case/' 
+    # config_folder = SCRIPT_DIR +'/config/' + 'obstacles_20_noise0.05/seed14_noise0.05_obs8_umax0.9_besfm_umax0.9_besfm/' 
+    config_folder = SCRIPT_DIR +'/config/' + 'video20obs/seed13_noise0.025_obs8_umax0.9_besfm_umax0.3_besfm/' 
     # config_folder = SCRIPT_DIR +'/config/' + 'video15obs/seed4_noise0.05_obs5_umax0.9_besfm_umax0.9_besfm/' 
     # config_folder = SCRIPT_DIR +'/config/' + 'one_obs/' 
  
