@@ -23,6 +23,7 @@ python main.py --ctrl-type adap_cvarbf --htype dist_cone
 
 --S: Number of uncertainty samples
 
+## Overview of Adaptive CVaR Barrier Functions
 ![Overview of Adaptive CVaR Barrier Functions](/config/20obs/figures/adap_cvarbf_beta0.99_hdist_cone.gif)
 
 
