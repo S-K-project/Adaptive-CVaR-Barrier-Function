@@ -4,8 +4,8 @@ from environment.env_base import EnvironmentBase
 from controller.cbf_controller_nlp import DCLFDCBF
 from controller.cvar_cbf_controller_nlp import DCLFCVARDCBF
 from controller.cvar_cbf_controller_nlp_beta_dt import DCLFCVARDCBF as DCLFCVARDCBFMPCBETADT
-from lib.sfm import SFM
-from lib.nominal import Nominal
+from controller.sfm import SFM
+from controller.nominal import Nominal
 
 import time
 from util.util import *
