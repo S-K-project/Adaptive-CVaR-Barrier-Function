@@ -62,9 +62,8 @@ class DCLFCVARDCBF:
         u = ca.MX.sym(f'u_{t}', self.robot.m, 1)
         n_zeta = len(obstacles) + len(all_robots) - 1
         n_eta = n_zeta * self.S
-        if self.robot.type == "doubleint" or self.robot.type == "singleint":
-            zeta = ca.MX.sym(f'zeta_{t}', n_zeta)
-            eta = ca.MX.sym(f'eta_{t}', n_eta)
+        zeta = ca.MX.sym(f'zeta_{t}', n_zeta)
+        eta = ca.MX.sym(f'eta_{t}', n_eta)
 
 
         constraints = []
@@ -92,8 +91,8 @@ class DCLFCVARDCBF:
                 x_k1 = self.robot.dynamics_uncertain(x, u, wu_s, wx_s)
                 x_k2 = self.robot.dynamics_uncertain(x_k1, u, wu_s, wx_s)
                 wu_s = self.obs_wu_samples[iObs][s].reshape(-1, 1) 
-                wx_s = self.obs_wx_samples[iObs][s].reshape(-1, 1) # only position noise
-                pre_obs_pos = obstacles[iObs].x_curr[:2] + (obstacles[iObs].velocity_xy[:2] + wu_s)* dt + wx_s  # next x_curr of the obstacle
+                wx_s = self.obs_wx_samples[iObs][s].reshape(-1, 1)  
+                pre_obs_pos = obstacles[iObs].x_curr[:2] + (obstacles[iObs].velocity_xy[:2] + wu_s)* dt + wx_s   
                 pre_obs_state = np.vstack((pre_obs_pos, obstacles[iObs].velocity_xy[:2])).reshape(-1, 1)
 
                 h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, pre_obs_state, obstacles[iObs].trajectory, obstacles[iObs].radius + self.robot.radius, htype=self.htype )
@@ -105,7 +104,6 @@ class DCLFCVARDCBF:
             pre_obs_pos = obstacles[iObs].x_curr[:2] + obstacles[iObs].velocity_xy[:2] * dt
             pre_obs_state = np.vstack((pre_obs_pos, obstacles[iObs].velocity_xy[:2])).reshape(-1, 1)
             h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, pre_obs_state, obstacles[iObs].trajectory, obstacles[iObs].radius + self.robot.radius, htype=self.htype )
-            # self.gamma_tune(h_k)
             
             # Constraint: -h_s - zeta[iObs] - eta[offset + s] <= 0
             constraints.append(-ca.vertcat(*hsk1_list) - zeta[zeta_index]*ca.DM.ones((self.S, 1)) - eta[offset:offset + self.S])
@@ -147,7 +145,6 @@ class DCLFCVARDCBF:
                 H_l[idx, 0] = 1
                 L_l = -v_min
                 h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_l, L=L_l, htype='linear')
-                #self.gamma_tune(h_k)
                 constraints.append(d_h + self.gamma * h_k)
                 lbg.append(0)
                 ubg.append(ca.inf)
@@ -157,7 +154,6 @@ class DCLFCVARDCBF:
                 H_u[idx, 0] = -1
                 L_u = v_max
                 h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_u, L=L_u, htype='linear')
-                #self.gamma_tune(h_k)
                 constraints.append(d_h + self.gamma * h_k)
                 lbg.append(0)
                 ubg.append(ca.inf)

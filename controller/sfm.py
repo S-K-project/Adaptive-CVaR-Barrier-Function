@@ -18,22 +18,7 @@ class SFM(Policy):
         self.configure()
 
     def configure(self, section='sfm'):
-        '''
-        A = 3.0
-            # setting for sfm policy
-        B = 0.18
-            # setting for sfm policy
-        KI = 1.0
-            # setting for sfm policy
-        A_static = 2.0
-            # setting for sfm policy
-        B_static = 0.025
-            # setting for sfm policy
-        A_bottleneck = 6.0
-            # setting for sfm policy
-        B_bottleneck = 0.12
-            # setting for sfm policy
-        '''
+ 
         self.A = 2.0 # my setting
         self.B = 0.5
         self.KI = 1.0 # 2
@@ -43,10 +28,6 @@ class SFM(Policy):
         self.A_bottleneck = 1.0 
         self.B_bottleneck = 0.03
         
-        # self.A = 2. # rl setting  
-        # self.B = 1
-        # self.KI = 1
-        
         self.time_step = self.obstacle.dt
         self.radius = 0.01
         
@@ -54,11 +35,7 @@ class SFM(Policy):
         self.feasible = True
         
     def solve_opt(self, ob):
-        """
-        Produce action for agent with circular specification of social force model.
-        """
-        # Pull force to goal
-        # self.update(all_obstacles, all_robots)
+
         self_state = ob[0]
         human_states = ob[1]
         
@@ -73,17 +50,14 @@ class SFM(Policy):
         curr_delta_vx = KI * (desired_vx - self_state.vx)
         curr_delta_vy = KI * (desired_vy - self_state.vy)
 
-        # Push force(s) from other agents
         A = self.A # Other observations' interaction strength: 1.5
         B = self.B # Other observations' interaction range: 1.0
         interaction_vx = 0
         interaction_vy = 0
         for other_human_state in human_states:
-            # adjustment = np.abs(self.radius - other_human_state.radius) + 0.01
             delta_x = self_state.px - other_human_state.px
             delta_y = self_state.py - other_human_state.py
             dist_to_human = np.sqrt(delta_x**2 + delta_y**2)
-            # dist_to_human = max(dist_to_human, 1e-6)  # 避免 0
             
             interaction_vx += A * np.exp((self_state.radius + other_human_state.radius  - dist_to_human) / B) * (delta_x / dist_to_human)
             interaction_vy += A * np.exp((self_state.radius + other_human_state.radius  - dist_to_human) / B) * (delta_y / dist_to_human)

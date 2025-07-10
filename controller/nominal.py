@@ -8,7 +8,6 @@ class Nominal:
         self.obstacle = obstacle
         self.d_min = 0.1 # goal_thershold
         self.k_v = 0.5  
-        # self.obstacle.color = 'k'
 
         self.feasible = True
 
