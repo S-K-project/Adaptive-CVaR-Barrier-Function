@@ -190,8 +190,9 @@ class ObjectBase:
 
         if self.behavior_type == 'all_obj':
             for robot in robots:
-                if robot.id == self.id:
-                    continue
+                if self.type in ['singleint','doubleint']:
+                    if robot.id == self.id:
+                        continue
                 robot_pos = robot.x_curr[:2]
                 distance = np.linalg.norm(obj_pos - robot_pos)
                 if distance <= R_sensing:

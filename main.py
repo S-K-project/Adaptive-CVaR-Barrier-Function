@@ -57,8 +57,8 @@ def main(htype, S, beta, save_ani, time_total, ctrl_type):
     }
 
     # Choose the config folder (edit as needed to test different scenarios)
-    config_folder = SCRIPT_DIR + '/config/' + '20obs/'
-    # config_folder = SCRIPT_DIR + '/config/' + 'one_obs/'
+    # config_folder = SCRIPT_DIR + '/config/' + '20obs/'
+    config_folder = SCRIPT_DIR + '/config/' + 'one_obs/'
 
     # Folder to store simulation figures and animations
     figure = 'figures/'

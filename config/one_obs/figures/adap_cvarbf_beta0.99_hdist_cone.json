@@ -6,7 +6,7 @@
         "frozen": false,
         "reached_goal": true,
         "success": true,
-        "computation_time": 0.03725433349609375,
+        "computation_time": 0.02639603614807129,
         "trajectory_length": 21.281568971554535,
         "trajectory_time": 14.700000000000001,
         "min_safety_margin": 0.5812783025445092,

@@ -2,16 +2,16 @@
     {
         "robot_id": 0,
         "feasible": true,
-        "collision": true,
+        "collision": false,
         "frozen": false,
-        "reached_goal": false,
-        "success": false,
-        "computation_time": 0.12745118141174316,
-        "trajectory_length": null,
-        "trajectory_time": null,
-        "min_safety_margin": null,
-        "min_h_value": null,
-        "min_cons_value": null,
-        "cost": null
+        "reached_goal": true,
+        "success": true,
+        "computation_time": 0.10815262794494629,
+        "trajectory_length": 13.720161004731473,
+        "trajectory_time": 16.6,
+        "min_safety_margin": 0.10044084056848646,
+        "min_h_value": -0.20115603450099617,
+        "min_cons_value": 0.05,
+        "cost": 0.0
     }
 ]
