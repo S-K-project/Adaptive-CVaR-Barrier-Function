@@ -1,0 +1,11 @@
+2025-03-26 15:46:00 [INFO] Tasks saved to /home/xinywa/CODE/rcbf_dynamic/rcbf_controller/config/video15obs/tasks.pkl
+2025-03-26 15:46:00 [INFO] Processing 0th file: /home/xinywa/CODE/rcbf_dynamic/rcbf_controller/config/video15obs/seed4_noise0.05_obs5_umax0.9_besfm_umax0.9_besfm/config.yaml
+2025-03-26 15:46:02 [INFO] Animation.save using <class 'matplotlib.animation.PillowWriter'>
+2025-03-26 15:46:07 [INFO] Animation.save using <class 'matplotlib.animation.PillowWriter'>
+2025-03-26 15:46:12 [INFO] Animation.save using <class 'matplotlib.animation.PillowWriter'>
+2025-03-26 15:46:19 [INFO] Animation.save using <class 'matplotlib.animation.PillowWriter'>
+2025-03-26 15:46:22 [INFO] Animation.save using <class 'matplotlib.animation.PillowWriter'>
+2025-03-26 15:47:16 [INFO] Finished: /home/xinywa/CODE/rcbf_dynamic/rcbf_controller/config/video15obs/seed4_noise0.05_obs5_umax0.9_besfm_umax0.9_besfm/config.yaml
+2025-03-26 15:47:16 [INFO] --------------------------------------------------
+2025-03-26 15:47:16 [INFO] 
+All tasks completed.

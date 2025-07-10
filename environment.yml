@@ -1,0 +1,13 @@
+name: safe_crowd
+channels:
+  - pytorch
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - click
+  - pyyaml
+  - numpy
+  - casadi
+  - scipy
+  - matplotlib

@@ -1,0 +1,17 @@
+[
+    {
+        "robot_id": 0,
+        "feasible": true,
+        "collision": false,
+        "frozen": false,
+        "reached_goal": true,
+        "success": true,
+        "computation_time": 0.00023831870104815567,
+        "trajectory_length": 21.34674247217813,
+        "trajectory_time": 14.8,
+        "min_safety_margin": 0.744643552728018,
+        "min_h_value": 1.2769046033952156,
+        "min_cons_value": 0.05,
+        "cost": 6.552489584651042
+    }
+]
