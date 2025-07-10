@@ -45,10 +45,8 @@ class EnvironmentBase:
                 noise = robot_config.get("noise", [0.0, 0.0, 0.0, 0.0])
                 target = robot_config.get("target", [0,0,0,0])
                 if robot_type == "doubleint":
-                    # u_max = robot_config.get("u_max", [3, 3])
-                    # u_min = robot_config.get("u_min", [-3, -3]) # [ax, ay]
-                    u_max = robot_config.get("u_max", [50, 50])
-                    u_min = robot_config.get("u_min", [-50, -50]) # [ax, ay]
+                    u_max = robot_config.get("u_max", [3, 3])
+                    u_min = robot_config.get("u_min", [-3, -3]) # [ax, ay]
                     robot = DoubleIntegratorRobotV2(x0,
                                                     u_max, u_min,
                                                     self.mapsize, 

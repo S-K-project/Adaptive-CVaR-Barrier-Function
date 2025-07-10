@@ -894,9 +894,9 @@ def animate(env, controllers=[], trajectory_file=None, filename=None, save_ani=T
 
     if save_ani and filename:
         filename = filename + ".mp4"
-        ani.save(filename, writer='ffmpeg', fps=30,dpi=100)
-        # gif_filename = filename.replace('.mp4', '.gif')
-        # ani.save(gif_filename, writer='pillow', fps=25)
+        # ani.save(filename, writer='ffmpeg', fps=30,dpi=100)
+        gif_filename = filename.replace('.mp4', '.gif')
+        ani.save(gif_filename, writer='pillow', fps=25)
         png_filename = filename.replace('.mp4', '_lastframe.jpg')
         plt.savefig(png_filename, dpi=100)  
 

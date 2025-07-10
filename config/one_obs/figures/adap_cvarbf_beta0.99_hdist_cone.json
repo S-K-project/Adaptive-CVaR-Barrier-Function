@@ -6,12 +6,12 @@
         "frozen": false,
         "reached_goal": true,
         "success": true,
-        "computation_time": 0.00023831870104815567,
-        "trajectory_length": 21.34674247217813,
-        "trajectory_time": 14.8,
-        "min_safety_margin": 0.744643552728018,
-        "min_h_value": 1.2769046033952156,
+        "computation_time": 0.00018418240709369731,
+        "trajectory_length": 21.281568971554535,
+        "trajectory_time": 14.700000000000001,
+        "min_safety_margin": 0.5812783025445092,
+        "min_h_value": -1.610250165487848,
         "min_cons_value": 0.05,
-        "cost": 6.552489584651042
+        "cost": 6.542740561402905
     }
 ]
