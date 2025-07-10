@@ -18,17 +18,17 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 @click.option("--htype", "htype", type=str, default='dist_cone', show_default=True, help="Type of h function") # vel, dist, dist_cone 
 @click.option("--S", "S", type=int, default=15, show_default=True, help="Number of samples in the uncertainty distribution")
 @click.option("--beta", "beta", type=float, default=0.99, show_default=True, help="Risk aversion parameter") # 0.1 for cvar risk aversion, 0.9 for cvar risk neutral
-@click.option("--show-ani", "show_ani", type=bool, default=False, show_default=True, help="Show animation")
 @click.option("--save-ani", "save_ani", type=bool, default=True, show_default=True, help="Save animation")
 @click.option("--time-total", "time_total", type=float, default=50.0, show_default=True, help="Total simulation time")
 @click.option("--ctrl-type", "ctrl_type", type=str, default="adap_cvarbf", show_default=True, help="Controller type") #cbf, cvarbf, adap_cvarbf
 
-def main(htype, S, beta, show_ani, save_ani, time_total, ctrl_type):
+def main(htype, S, beta, save_ani, time_total, ctrl_type):
     
     params = {
         "htype": htype,
         "beta": beta,
         "S": S,
+        "ctrl_type": ctrl_type,
     }
 
     # config_folder = SCRIPT_DIR +'/config/' + 'video20obs/' 
@@ -47,7 +47,7 @@ def main(htype, S, beta, show_ani, save_ani, time_total, ctrl_type):
     
     done = False
     while not done:
-        start_time = time.time()
+        start_time = time.time()    
         for robot, controller in zip(env.robots, controllers):
             
             loc_obstacles = robot.update_local_objects(env.obstacles, env.robots, R_sensing=5)
@@ -64,7 +64,6 @@ def main(htype, S, beta, show_ani, save_ani, time_total, ctrl_type):
                 log_error(f"Optimization failed for Robot {robot.id}. Exiting simulation.")
                 controller.feasible = False
 
-                    
             end_time = time.time()
             computation_time = end_time - start_time
             log_info(f"Solver Computation Time: {computation_time:.6f} seconds")
@@ -80,15 +79,14 @@ def main(htype, S, beta, show_ani, save_ani, time_total, ctrl_type):
         if done:
             print(info)
             
-    end_time = time.time()
-    computation_time = (end_time - start_time) / (env.t_curr / env.dt)
+
 
     if save_ani:
         filename = os.path.join(
             figures_folder, f"{ctrl_type}_beta{beta}_h{htype}"
             )  
  
-        animate(env, controllers, None, filename, save_ani=save_ani, show_ani=show_ani)
+        animate(env, controllers, filename, save_ani=save_ani)
         performance_metrics(env, controllers, info, computation_time, filename)
 
 

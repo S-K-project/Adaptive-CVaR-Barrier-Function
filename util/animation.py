@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import os
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import json
-    
+from matplotlib.animation import FuncAnimation
+
+
 def performance_metrics(env, controllers, info, computation_time, filename):
         
     (state_histories, control_inputs_list, h_values_list, cons_values_list,
@@ -286,10 +287,6 @@ def init_obstacles(ax_left, obs_state_list, env):
         ax_left.add_patch(obs_orig)
         obs_patches_original.append(obs_orig)
 
-        # # 在障碍物圆心添加文本：Obstacle ID
-        # obs_text = ax_left.text(initial_x, initial_y, f"{i}",
-        #                         fontsize=8, color='black', ha='center', va='center')
-        # obstacle_texts.append(obs_text)
         obstacle_texts= []
         
     return obstacle_patches, obs_patches_original, obstacle_texts
@@ -330,9 +327,6 @@ def init_robots(ax_left, env):
         ax_left.plot(robot.target[0], robot.target[1], 'y^', 
                      label=f"Goal", markersize=8, alpha=0.6)
 
-        # scat = ax_left.scatter([], [], s=20, c=[], cmap='Blues',  # Blues, Reds, Greens
-        #                        norm=plt.Normalize(0, 1), 
-        #                        label=f" Trajectory")
         scat = ax_left.scatter([], [], s=20, color='blue', alpha =0.4)  # Use 'color' instead of 'c'
 
         scatters.append(scat)
@@ -408,10 +402,7 @@ def init_lines(ax_h, ax_margin, ax_u, ax_beta, h_values_list, safety_margin_list
         ax_margin.axhline(y=0, color='r', linestyle='--', linewidth=0.8)
         ax_u.axhline(y=env.robots[0].u_min[0], color='r', linestyle='--', linewidth=0.8)
         ax_u.axhline(y=env.robots[0].u_max[0], color='r',linestyle='--',linewidth=0.8)
-        # ax_h.axhline(y=0, color='r', linestyle='--', linewidth=0.8, label='h threshold')
-        # ax_margin.axhline(y=0, color='r', linestyle='--', linewidth=0.8, label='margin threshold')
-        # ax_u.axhline(y=env.robots[0].u_min[0], color='r', linestyle='--', linewidth=0.8, label='u threshold')
-        # ax_u.axhline(y=env.robots[0].u_max[0], color='r',linestyle='--',linewidth=0.8,label='u threshold')
+ 
     
     return (lines_h, lines_margin, lines_u1, lines_u2,
             lines_beta, lines_beta_u, lines_beta_u_bar, lines_nom_u1, lines_nom_u2, lines_cost)
@@ -624,7 +615,7 @@ def compute_closest_obstacle_factors(env, num, compute_factor_and_params, state_
     
 
 
-def animate(env, controllers=[], trajectory_file=None, filename=None, save_ani=True, show_ani=False):
+def animate(env, controllers=[], filename=None, save_ani=True):
     """
     Animate the trajectories of robots and obstacles in the environment.
 
@@ -639,12 +630,9 @@ def animate(env, controllers=[], trajectory_file=None, filename=None, save_ani=T
     save_ani : bool
         Whether to save the animation (mp4 and gif). If False, just visualize without saving.
     """
-    if trajectory_file is None:
-        (state_histories, control_inputs_list, h_values_list, beta_values_list, cons_values_list,
-         obs_state_list, nominal_inputs_list, velocities_list, cost_list) = load_data_from_controller(env, controllers)
-    else:
-        (state_histories, control_inputs_list, h_values_list, beta_values_list, cons_values_list,
-         obs_state_list, nominal_inputs_list, velocities_list, cost_list) = load_data_from_json(trajectory_file)
+    (state_histories, control_inputs_list, h_values_list, beta_values_list, cons_values_list,
+        obs_state_list, nominal_inputs_list, velocities_list, cost_list) = load_data_from_controller(env, controllers)
+ 
         
     # Compute safety margins
     safety_margin_list = compute_safety_margins(env, state_histories, obs_state_list)
@@ -760,7 +748,7 @@ def animate(env, controllers=[], trajectory_file=None, filename=None, save_ani=T
 
         def compute_factor_and_params(robot_idx, obs_idx, t):
             if (t < state_histories[robot_idx].shape[1] and 
-                t < obs_state_list[obs_idx].shape[1]) and trajectory_file is None:
+                t < obs_state_list[obs_idx].shape[1]):
                 if controllers[robot_idx].htype == "dist_cone":
                     dot_product = env.robots[robot_idx].collision_cone_value(state_histories[robot_idx][:, t], obs_state_list[obs_idx][:, t])
                     w = np.linalg.norm(obs_state_list[obs_idx][2:4, t]) / env.robots[robot_idx].v_obs_est
@@ -822,15 +810,14 @@ def animate(env, controllers=[], trajectory_file=None, filename=None, save_ani=T
             margin = safety_margin_list[i][:num]
             lines_margin[i].set_data(xdata, margin)
 
-            if trajectory_file is None:
-                if controllers[i].type == "cvar" or controllers[i].type == "adap_cvarbf":
-                    if controllers[i].htype in ["dist_cone"]:
-                        beta_u = np.full(num, 0.5) 
-                        lines_beta_u[i].set_data(xdata, beta_u)
-                    
-                    elif controllers[i].htype in ["dist"]:
-                        beta_u = np.full(num, 0.5) 
-                        lines_beta_u[i].set_data(xdata, beta_u)
+            if controllers[i].type == "cvar" or controllers[i].type == "adap_cvarbf":
+                if controllers[i].htype in ["dist_cone"]:
+                    beta_u = np.full(num, 0.5) 
+                    lines_beta_u[i].set_data(xdata, beta_u)
+                
+                elif controllers[i].htype in ["dist"]:
+                    beta_u = np.full(num, 0.5) 
+                    lines_beta_u[i].set_data(xdata, beta_u)
 
 
             u1 = control_inputs_list[i][0, :num]
@@ -853,18 +840,12 @@ def animate(env, controllers=[], trajectory_file=None, filename=None, save_ani=T
                 + lines_cost)
         
     num_frames = min([s.shape[1] for s in state_histories])
-    extra_frames = 10  # 多余的帧以保持最后一帧的显示
 
-    def extended_update_frame(frame):
-        if frame >= num_frames:
-            frame = num_frames - 1
-        return update_frame(frame)
-        
-    from matplotlib.animation import FuncAnimation
+
     ani = FuncAnimation(
         fig,
-        extended_update_frame,
-        frames=num_frames + extra_frames,
+        update_frame,
+        frames=num_frames ,
         init_func=init_func,
         blit=False,
         interval=50,
