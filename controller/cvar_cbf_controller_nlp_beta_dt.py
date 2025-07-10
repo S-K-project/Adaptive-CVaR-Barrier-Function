@@ -13,14 +13,12 @@ class DCLFCVARDCBF:
         
         self.beta_candidates = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
         self.gamma = 0.1
-        self.N = params.get("N", 5)  
 
         self.w_a = 1  
 
         self.hlog = []
         self.cons_log = []
         self.beta_log = []
-        self.cost_log = []
         
         self.feasible = True
 
@@ -89,13 +87,12 @@ class DCLFCVARDCBF:
                 wu_s = self.robot_wu_samples[self.robot.id][s].reshape(-1, 1)
                 wx_s = self.robot_wx_samples[self.robot.id][s].reshape(-1, 1)
                 x_k1 = self.robot.dynamics_uncertain(x, u, wu_s, wx_s)
-                x_k2 = self.robot.dynamics_uncertain(x_k1, u, wu_s, wx_s)
                 wu_s = self.obs_wu_samples[iObs][s].reshape(-1, 1) 
                 wx_s = self.obs_wx_samples[iObs][s].reshape(-1, 1)  
                 pre_obs_pos = obstacles[iObs].x_curr[:2] + (obstacles[iObs].velocity_xy[:2] + wu_s)* dt + wx_s   
                 pre_obs_state = np.vstack((pre_obs_pos, obstacles[iObs].velocity_xy[:2])).reshape(-1, 1)
 
-                h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, pre_obs_state, obstacles[iObs].trajectory, obstacles[iObs].radius + self.robot.radius, htype=self.htype )
+                h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, pre_obs_state, obstacles[iObs].radius + self.robot.radius, htype=self.htype )
                 hs_k1 = d_h + h_k
                 hsk1_list.append(hs_k1)
 
@@ -103,7 +100,7 @@ class DCLFCVARDCBF:
             x_k1 = self.robot.dynamics_uncertain(x, u)
             pre_obs_pos = obstacles[iObs].x_curr[:2] + obstacles[iObs].velocity_xy[:2] * dt
             pre_obs_state = np.vstack((pre_obs_pos, obstacles[iObs].velocity_xy[:2])).reshape(-1, 1)
-            h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, pre_obs_state, obstacles[iObs].trajectory, obstacles[iObs].radius + self.robot.radius, htype=self.htype )
+            h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, pre_obs_state, obstacles[iObs].radius + self.robot.radius, htype=self.htype )
             
             # Constraint: -h_s - zeta[iObs] - eta[offset + s] <= 0
             constraints.append(-ca.vertcat(*hsk1_list) - zeta[zeta_index]*ca.DM.ones((self.S, 1)) - eta[offset:offset + self.S])
@@ -132,31 +129,29 @@ class DCLFCVARDCBF:
         lbg.extend([0] * self.robot.m)
         ubg.extend([ca.inf] * self.robot.m)
         
-        if self.robot.type != "singleint":
-            ## velocity constraints
-            x_k1 = self.robot.dynamics(x, u)
-            if self.robot.type in ["doubleint", "doubleint_v1"]:
-                velocity_indices = [(2, self.robot.x_min[2, 0], self.robot.x_max[2, 0]),  # vx
-                                    (3, self.robot.x_min[3, 0], self.robot.x_max[3, 0])]  # vy
-    
-            for idx, v_min, v_max in velocity_indices:
-                # Lower bound: v >= v_min
-                H_l = np.zeros((4, 1))
-                H_l[idx, 0] = 1
-                L_l = -v_min
-                h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_l, L=L_l, htype='linear')
-                constraints.append(d_h + self.gamma * h_k)
-                lbg.append(0)
-                ubg.append(ca.inf)
+        ## velocity constraints
+        x_k1 = self.robot.dynamics(x, u)
+        velocity_indices = [(2, self.robot.x_min[2, 0], self.robot.x_max[2, 0]),  # vx
+                            (3, self.robot.x_min[3, 0], self.robot.x_max[3, 0])]  # vy
 
-                # Upper bound: v <= v_max
-                H_u = np.zeros((4, 1))
-                H_u[idx, 0] = -1
-                L_u = v_max
-                h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_u, L=L_u, htype='linear')
-                constraints.append(d_h + self.gamma * h_k)
-                lbg.append(0)
-                ubg.append(ca.inf)
+        for idx, v_min, v_max in velocity_indices:
+            # Lower bound: v >= v_min
+            H_l = np.zeros((4, 1))
+            H_l[idx, 0] = 1
+            L_l = -v_min
+            h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_l, L=L_l, htype='linear')
+            constraints.append(d_h + self.gamma * h_k)
+            lbg.append(0)
+            ubg.append(ca.inf)
+
+            # Upper bound: v <= v_max
+            H_u = np.zeros((4, 1))
+            H_u[idx, 0] = -1
+            L_u = v_max
+            h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_u, L=L_u, htype='linear')
+            constraints.append(d_h + self.gamma * h_k)
+            lbg.append(0)
+            ubg.append(ca.inf)
 
         # # add environment bounds
         # x_k1 = self.robot.dynamics(x, u)
@@ -239,7 +234,6 @@ class DCLFCVARDCBF:
             h_k, _ = self.robot.agent_barrier_dt(
                 x, x_k1, 
                 pre_obs_state, 
-                obstacles[iObs].trajectory, 
                 obstacles[iObs].radius + self.robot.radius, 
                 htype=self.htype
             )
@@ -256,5 +250,4 @@ class DCLFCVARDCBF:
         self.hlog.append(np.array(h_list).reshape(-1, 1))
         self.beta_log.append(np.array(beta_list).reshape(-1, 1))
         self.cons_log.append(np.array(cons_list).reshape(-1, 1))
-        self.cost_log.append(sol_cost)
 

@@ -111,10 +111,9 @@ class DoubleIntegratorRobot(ObjectBase):
         return a.reshape(-1, 1), v_des.reshape(-1, 1)
     
 
-    def agent_barrier_dt(self, x_k, x_k1, obs_state = None, obs_traj = None, radius=0.1, H=np.zeros((4, 1)), L=-np.inf, htype='dist'):
+    def agent_barrier_dt(self, x_k, x_k1, obs_state = None, radius=0.1, H=np.zeros((4, 1)), L=-np.inf, htype='dist'):
         if htype == 'dist':
             obs_pos = obs_state[0:2].reshape(-1, 1)
-            obs_curr_pos = obs_traj[-1][0:2].reshape(-1, 1)
             h_k1 = self.h_dist(x_k1, obs_pos, radius)
             h_k = self.h_dist(x_k, obs_pos, radius)
         elif htype == 'linear':
@@ -122,12 +121,10 @@ class DoubleIntegratorRobot(ObjectBase):
             h_k = self.h_linear(x_k, H=H, L=L)
         elif htype == 'vel':
             obs_pos = obs_state[0:2].reshape(-1, 1)
-            obs_curr_pos = obs_traj[-1][0:2].reshape(-1, 1)
             h_k1 = self.h_vel(x_k1, obs_pos, radius)
             h_k = self.h_vel(x_k, obs_pos, radius)
         elif htype == 'dist_cone':
             obs_state = obs_state.reshape(-1,1)
-            obs_curr_state = obs_traj[-1][0:4].reshape(-1, 1) # TODO hk use the current state of the obstacle ?
             h_k1 = self.h_dist_cone(x_k1, obs_state, radius)
             h_k = self.h_dist_cone(x_k, obs_state, radius)
         else:

@@ -57,8 +57,8 @@ def main(htype, S, beta, save_ani, time_total, ctrl_type):
     }
 
     # Choose the config folder (edit as needed to test different scenarios)
-    # config_folder = SCRIPT_DIR + '/config/' + 'video20obs/'
-    config_folder = SCRIPT_DIR + '/config/' + 'one_obs/'
+    config_folder = SCRIPT_DIR + '/config/' + '20obs/'
+    # config_folder = SCRIPT_DIR + '/config/' + 'one_obs/'
 
     # Folder to store simulation figures and animations
     figure = 'figures/'
@@ -140,9 +140,9 @@ def create_controllers(env, ctrl_type, params):
         List of controller instances (one per robot).
     """
     controller_mapping = {
-        "cvarbf": DCLFCVARDCBF,  # For CVaR-CBF control (risk-based)
+        "cvarbf": DCLFCVARDCBF,  #  CVaR-CBF control 
         "cbf": DCLFDCBF,         # Deterministic CBF (no uncertainty)
-        "adap_cvarbf": DCLFCVARDCBFMPCBETADT,  # Adaptive CVaR-CBF (risk-based, adaptive)
+        "adap_cvarbf": DCLFCVARDCBFMPCBETADT,  # Adaptive CVaR-CBF 
     }
 
     if ctrl_type not in controller_mapping:
@@ -184,5 +184,4 @@ def create_obs_controller(env):
 
 
 if __name__ == "__main__":
-    # Run the CLI main entry point
     main()

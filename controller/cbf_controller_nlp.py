@@ -10,13 +10,10 @@ class DCLFDCBF:
         self.S = params["S"]
         self.gamma =0.1
 
-        self.N = params.get("N", 5)  
-
         self.w_a = 1  
 
         self.hlog = []
         self.cons_log = []
-        self.cost_log = []
         
         self.feasible = True
 
@@ -48,7 +45,7 @@ class DCLFDCBF:
             pre_obs_pos = obstacles[iObs].x_curr[:2] + obstacles[iObs].velocity_xy[:2] * dt
             pre_obs_state = np.vstack((pre_obs_pos, obstacles[iObs].velocity_xy[:2])).reshape(-1, 1)
 
-            h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, pre_obs_state, obstacles[iObs].trajectory, obstacles[iObs].radius+ self.robot.radius, htype=self.htype)
+            h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, pre_obs_state, obstacles[iObs].radius+ self.robot.radius, htype=self.htype)
             constraints.append(d_h + self.gamma * h_k)
                 
             lbg.append(0)
@@ -63,30 +60,29 @@ class DCLFDCBF:
         lbg.extend([0] * self.robot.m)
         ubg.extend([ca.inf] * self.robot.m)
 
-        if self.robot.type != "singleint":
-            ## velocity constraints
-            x_k1 = self.robot.dynamics(x, u)
-            velocity_indices = [(2, self.robot.x_min[2, 0], self.robot.x_max[2, 0]),  # vx
-                                (3, self.robot.x_min[3, 0], self.robot.x_max[3, 0])]  # vy
-                
-            for idx, v_min, v_max in velocity_indices:
-                # Lower bound: v >= v_min
-                H_l = np.zeros((4, 1))
-                H_l[idx, 0] = 1
-                L_l = -v_min
-                h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_l, L=L_l, htype='linear')
-                constraints.append(d_h + self.gamma * h_k)
-                lbg.append(0)
-                ubg.append(ca.inf)
+        ## velocity constraints
+        x_k1 = self.robot.dynamics(x, u)
+        velocity_indices = [(2, self.robot.x_min[2, 0], self.robot.x_max[2, 0]),  # vx
+                            (3, self.robot.x_min[3, 0], self.robot.x_max[3, 0])]  # vy
+            
+        for idx, v_min, v_max in velocity_indices:
+            # Lower bound: v >= v_min
+            H_l = np.zeros((4, 1))
+            H_l[idx, 0] = 1
+            L_l = -v_min
+            h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_l, L=L_l, htype='linear')
+            constraints.append(d_h + self.gamma * h_k)
+            lbg.append(0)
+            ubg.append(ca.inf)
 
-                # Upper bound: v <= v_max
-                H_u = np.zeros((4, 1))
-                H_u[idx, 0] = -1
-                L_u = v_max
-                h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_u, L=L_u, htype='linear')
-                constraints.append(d_h + self.gamma * h_k)
-                lbg.append(0)
-                ubg.append(ca.inf)
+            # Upper bound: v <= v_max
+            H_u = np.zeros((4, 1))
+            H_u[idx, 0] = -1
+            L_u = v_max
+            h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, H=H_u, L=L_u, htype='linear')
+            constraints.append(d_h + self.gamma * h_k)
+            lbg.append(0)
+            ubg.append(ca.inf)
         
         # ## boundary contraints
         # x_k1 = self.robot.dynamics(x, u)
@@ -152,7 +148,7 @@ class DCLFDCBF:
             pre_obs_pos = obstacles[iObs].x_curr
             pre_obs_state = np.vstack((pre_obs_pos, obstacles[iObs].velocity_xy[:2])).reshape(-1, 1)
 
-            h_k, d_h = self.robot.agent_barrier_dt(x, uopt, pre_obs_state, obstacles[iObs].trajectory, obstacles[iObs].radius + self.robot.radius)
+            h_k, d_h = self.robot.agent_barrier_dt(x, uopt, pre_obs_state, obstacles[iObs].radius + self.robot.radius)
             h_list.append(h_k)
             
             cons_list.append(sol_g[c_idx])
@@ -160,4 +156,3 @@ class DCLFDCBF:
             
         self.hlog.append(np.array(h_list).reshape(-1, 1))
         self.cons_log.append(np.array(cons_list).reshape(-1, 1))
-        self.cost_log.append(sol_cost)
