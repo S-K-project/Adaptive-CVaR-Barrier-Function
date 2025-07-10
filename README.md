@@ -13,15 +13,13 @@ pip install -r requirements.txt
 
 python main.py --ctrl-type adap_cvarbf --htype dist_cone  
 
-##  arguments:
+## Arguments:
 
 --ctrl-type: Controller type (cbf, cvarbf, adap_cvarbf)
 
---htype: Type of h-function (dist_cone, vel, dist)
+--htype: h-function type (dist_cone, vel, dist)
 
---beta: risk level, fixed for cvarbf controller and adaptive for adap_cvarbf controller
-
---S: Number of uncertainty samples
+--beta: Risk parameter: fixed for cvarbf controller and adaptive for adap_cvarbf controller
 
 ## Overview of Adaptive CVaR Barrier Functions
 ![Overview of Adaptive CVaR Barrier Functions](/config/20obs/figures/adap_cvarbf_beta0.99_hdist_cone.gif)
