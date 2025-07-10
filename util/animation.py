@@ -147,42 +147,25 @@ def load_data_from_controller(env, controllers = []):
     state_histories = [np.hstack(robot.xlog) for robot in env.robots]
 
     control_inputs_list = [np.hstack(robot.ulog) for robot in env.robots]
-    
-    if controllers[0].type == "cvar" or controllers[0].type == "cvar_beta_dt" or controllers[0].type == "cbf" or controllers[0].type == "rcbf" or controllers[0].type == "cvar_mpc":
-        # h_values_list = [np.hstack(controller.hlog) for controller in controllers]
             
-        # h_values_list = [np.min(np.hstack(controller.hlog), axis=0) for controller in controllers]
-        h_values_list = []
+    h_values_list = []
+    for controller in controllers:
+        # Compute the minimum for each entry in hlog independently
+        h_values = [np.min(entry) for entry in controller.hlog]
+        h_values_list.append(h_values)
+    cons_values_list = []
+    for controller in controllers:
+        cons_values = [np.min(entry) for entry in controller.cons_log]
+        cons_values_list.append(cons_values)
+            
+    if hasattr(controllers[0], "beta_log") and len(controllers[0].beta_log) > 0:
+        beta_values_list = []
         for controller in controllers:
-            # Compute the minimum for each entry in hlog independently
-            h_values = [np.min(entry) for entry in controller.hlog]
-            h_values_list.append(h_values)
-        cons_values_list = []
-        for controller in controllers:
-            cons_values = [np.min(entry) for entry in controller.cons_log]
-            cons_values_list.append(cons_values)
-                
-        if hasattr(controllers[0], "beta_log") and len(controllers[0].beta_log) > 0:
-            beta_values_list = []
-            for controller in controllers:
-                beta_values = [np.min(entry) for entry in controller.beta_log]
-                beta_values_list.append(beta_values)
-        else:
-            beta_values_list = [np.zeros((len(controller.hlog))) for controller in controllers]
-            # cons_values_list = [np.zeros((len(controller.hlog))) for controller in controllers]
-
-        # if hasattr(controllers[0], "beta_log") and len(controllers[0].beta_log) > 0:
-        #     # beta_values_list = [np.hstack(controller.beta_log) for controller in controllers]
-        #     beta_values_list = [np.min(np.hstack(controller.beta_log), axis=0) for controller in controllers]
-        #     cons_values_list = [np.min(np.hstack(controller.cons_log), axis=0) for controller in controllers]
-        # else:
-        #     # beta_values_list = [np.zeros((1, 1)) for _ in controllers]
-        #     beta_values_list = [np.zeros((len(controller.hlog))) for controller in controllers]
-        #     cons_values_list = [np.zeros((len(controller.hlog))) for controller in controllers]
+            beta_values = [np.min(entry) for entry in controller.beta_log]
+            beta_values_list.append(beta_values)
     else:
-        h_values_list = [np.zeros((1, 1)) for _ in env.robots]
-        beta_values_list = [np.zeros((1, 1)) for _ in env.robots]
-        cons_values_list = [np.zeros((1, 1)) for _ in env.robots]
+        beta_values_list = [np.zeros((len(controller.hlog))) for controller in controllers]
+
 
     obs_state_list = [np.hstack(obs.trajectory) for obs in env.obstacles]
 
@@ -778,16 +761,12 @@ def animate(env, controllers=[], trajectory_file=None, filename=None, save_ani=T
         def compute_factor_and_params(robot_idx, obs_idx, t):
             if (t < state_histories[robot_idx].shape[1] and 
                 t < obs_state_list[obs_idx].shape[1]) and trajectory_file is None:
-                
-                if controllers[0].type in ["cvar", "cvar_beta_dt", "cbf", "rcbf", "cvar_mpc"]:
-                    if controllers[robot_idx].htype == "dist_cone":
-                        dot_product = env.robots[robot_idx].collision_cone_value(state_histories[robot_idx][:, t], obs_state_list[obs_idx][:, t])
-                        w = np.linalg.norm(obs_state_list[obs_idx][2:4, t]) / env.robots[robot_idx].v_obs_est
-                        theta_value = (1.0 / env.robots[robot_idx].rate) * np.log(1 + np.exp(-env.robots[robot_idx].rate * dot_product)) 
-                        factor = np.sqrt(1.0 + w * theta_value)
-                        return factor, dot_product, 0.0, w * theta_value
-                    else:
-                        return (1.0, 0.0, 0.0, 0.0)
+                if controllers[robot_idx].htype == "dist_cone":
+                    dot_product = env.robots[robot_idx].collision_cone_value(state_histories[robot_idx][:, t], obs_state_list[obs_idx][:, t])
+                    w = np.linalg.norm(obs_state_list[obs_idx][2:4, t]) / env.robots[robot_idx].v_obs_est
+                    theta_value = (1.0 / env.robots[robot_idx].rate) * np.log(1 + np.exp(-env.robots[robot_idx].rate * dot_product)) 
+                    factor = np.sqrt(1.0 + w * theta_value)
+                    return factor, dot_product, 0.0, w * theta_value
                 else:
                     return (1.0, 0.0, 0.0, 0.0)
             else:
@@ -844,7 +823,7 @@ def animate(env, controllers=[], trajectory_file=None, filename=None, save_ani=T
             lines_margin[i].set_data(xdata, margin)
 
             if trajectory_file is None:
-                if controllers[i].type == "cvar" or controllers[i].type == "cvar_beta_dt":
+                if controllers[i].type == "cvar" or controllers[i].type == "adap_cvarbf":
                     if controllers[i].htype in ["dist_cone"]:
                         beta_u = np.full(num, 0.5) 
                         lines_beta_u[i].set_data(xdata, beta_u)
@@ -893,12 +872,10 @@ def animate(env, controllers=[], trajectory_file=None, filename=None, save_ani=T
     )
 
     if save_ani and filename:
-        filename = filename + ".mp4"
-        # ani.save(filename, writer='ffmpeg', fps=30,dpi=100)
-        gif_filename = filename.replace('.mp4', '.gif')
-        ani.save(gif_filename, writer='pillow', fps=25)
-        png_filename = filename.replace('.mp4', '_lastframe.jpg')
-        plt.savefig(png_filename, dpi=100)  
+        filename = filename + ".gif"
+        ani.save(filename, writer='pillow', fps=25)
+        # png_filename = filename.replace('.gif', '_lastframe.jpg')
+        # plt.savefig(png_filename, dpi=100)  
 
     plt.close(fig)
 

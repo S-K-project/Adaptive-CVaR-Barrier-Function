@@ -10,14 +10,14 @@ import multiprocessing as mp
     
 class DCLFCVARDCBF:
     def __init__(self, robot, obstacles, all_robots, params):
-        self.type = 'cvar_beta_dt'
+        self.type = 'adap_cvarbf'
         self.robot = robot
 
         self.htype = params["htype"]
         self.S = params["S"]
         self.beta_int = params.get("beta", None)  
         
-        self.beta_candidates = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+        self.beta_candidates = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
         self.gamma = 0.1
         self.N = params.get("N", 5)  
 

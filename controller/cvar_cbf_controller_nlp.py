@@ -7,7 +7,7 @@ from util.util import log_info
 # obstacle has uncertain position. robot use cvar cbf controller
 class DCLFCVARDCBF:
     def __init__(self, robot, obstacles, all_robots, params):
-        self.type = 'cvar'
+        self.type = 'cvarbf'
 
         self.robot = robot
 

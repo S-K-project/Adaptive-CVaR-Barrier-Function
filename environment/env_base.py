@@ -2,7 +2,6 @@ import json
 import yaml
 import numpy as np
 from .robot.double_int import DoubleIntegratorRobot as DoubleIntegratorRobotV2
-from .robot.single_int import SingleIntegratorRobot
 from .obstacle.obs import Obstacle as ObstacleInt
 from util.util import *
 
@@ -55,18 +54,6 @@ class EnvironmentBase:
                                                     id,
                                                     target,
                                                     self.seed)
-                elif robot_type == "singleint":
-                    u_max = robot_config.get("u_max", [2, 2])
-                    u_min = robot_config.get("u_min", [-2, -2]) # [vx, vy]
-                    robot = SingleIntegratorRobot(x0, 
-                                                u_max, u_min,
-                                                self.mapsize, 
-                                                radius,
-                                                self.dt, 
-                                                noise,
-                                                id,
-                                                target, 
-                                                self.seed)
 
                 else:
                     raise ValueError(f"Unknown robot type: {robot_type}")

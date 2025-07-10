@@ -15,13 +15,13 @@ from util.animation import *
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @click.command()
-@click.option("--htype", "htype", type=str, default='dist', show_default=True, help="Type of h function") # cone, vel, dist, dist_cone 
+@click.option("--htype", "htype", type=str, default='dist_cone', show_default=True, help="Type of h function") # vel, dist, dist_cone 
 @click.option("--S", "S", type=int, default=15, show_default=True, help="Number of samples in the uncertainty distribution")
 @click.option("--beta", "beta", type=float, default=0.99, show_default=True, help="Risk aversion parameter") # 0.1 for cvar risk aversion, 0.9 for cvar risk neutral
 @click.option("--show-ani", "show_ani", type=bool, default=False, show_default=True, help="Show animation")
 @click.option("--save-ani", "save_ani", type=bool, default=True, show_default=True, help="Save animation")
 @click.option("--time-total", "time_total", type=float, default=50.0, show_default=True, help="Total simulation time")
-@click.option("--ctrl-type", "ctrl_type", type=str, default="cvar", show_default=True, help="Controller type") #cbf, cvar, rcbf, adap_cvarbf
+@click.option("--ctrl-type", "ctrl_type", type=str, default="adap_cvarbf", show_default=True, help="Controller type") #cbf, cvarbf, adap_cvarbf
 
 def main(htype, S, beta, show_ani, save_ani, time_total, ctrl_type):
     
@@ -31,10 +31,7 @@ def main(htype, S, beta, show_ani, save_ani, time_total, ctrl_type):
         "S": S,
     }
 
-    # config_folder = SCRIPT_DIR +'/config/' + 'demo_case/' 
-    # config_folder = SCRIPT_DIR +'/config/' + 'obstacles_20_noise0.05/seed14_noise0.05_obs8_umax0.9_besfm_umax0.9_besfm/' 
-    # config_folder = SCRIPT_DIR +'/config/' + 'video20obs/seed13_noise0.025_obs8_umax0.9_besfm_umax0.3_besfm/' 
-    # config_folder = SCRIPT_DIR +'/config/' + 'video15obs/seed4_noise0.05_obs5_umax0.9_besfm_umax0.9_besfm/' 
+    # config_folder = SCRIPT_DIR +'/config/' + 'video20obs/' 
     config_folder = SCRIPT_DIR +'/config/' + 'one_obs/' 
  
     
@@ -100,7 +97,7 @@ def create_controllers(env, ctrl_type, params):
     Create controllers based on the type.
     """
     controller_mapping = {
-        "cvar": DCLFCVARDCBF, # robot/obs uncertain
+        "cvarbf": DCLFCVARDCBF, # robot/obs uncertain
         "cbf": DCLFDCBF, # no uncertain
         "adap_cvarbf": DCLFCVARDCBFMPCBETADT, # robot/obs uncertain
     }
