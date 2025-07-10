@@ -175,7 +175,6 @@ def load_data_from_controller(env, controllers = []):
     else:
         nominal_inputs_list = [np.zeros((2, 1)) for _ in env.robots]
 
-    # 机器人速度
     velocities_list = []
     if env.robots[0].type == "doubleint":
         for state_history in state_histories:
@@ -196,36 +195,6 @@ def load_data_from_controller(env, controllers = []):
     
     return (state_histories, control_inputs_list, h_values_list, beta_values_list, cons_values_list,
             obs_state_list, nominal_inputs_list, velocities_list, cost_list)
-
-def load_data_from_json(json_file):
-    with open(json_file, 'r') as f:
-        data = json.load(f)
-
-    # 机器人轨迹（假设只有一个机器人），转换为 shape (2, num_steps)
-    robot_traj = np.array(data["robot"]).T  # 例如：[[x1, x2, ...], [y1, y2, ...]]
-    state_histories = [robot_traj]
-    
-    # 障碍物轨迹：所有 key 以 "human" 开头的视为障碍物轨迹
-    obs_state_list = []
-    for key in data:
-        if key.startswith("human"):
-            traj = np.array(data[key]).T  # shape (2, num_steps)
-            velocities = np.zeros_like(traj)
-            # obs_state = np.vstack((traj, velocities))
-            # obs_state_list.append(obs_state) 
-            obs_state_list.append(traj)
-    
-    num_steps = robot_traj.shape[1]
-    control_inputs_list = [np.zeros((2, num_steps))]
-    h_values_list = [np.zeros(num_steps)]
-    beta_values_list = [np.zeros(num_steps)]
-    cons_values_list = [np.zeros(num_steps)]
-    nominal_inputs_list = [np.zeros((2, num_steps))]
-    velocities_list = [np.zeros((2, num_steps))]
-    cost_list = [np.zeros(num_steps)]
-    
-    return (state_histories, control_inputs_list, h_values_list, beta_values_list, 
-            cons_values_list, obs_state_list, nominal_inputs_list, velocities_list, cost_list)
 
 def create_figure_and_axes():
     """
@@ -270,13 +239,11 @@ def init_obstacles(ax_left, obs_state_list, env):
         initial_y = obs_state_list[i][1, 0]
         radius = obs.radius
 
-        # 动态膨胀圆（初始与原始半径相同，颜色更浅）
         obstacle_circle = plt.Circle((initial_x, initial_y), radius, 
                                      color='grey', alpha=0.3)
         ax_left.add_patch(obstacle_circle)
         obstacle_patches.append(obstacle_circle)
 
-        # 原始圆形
         obs_orig = plt.Circle(
             (initial_x, initial_y),
             obs.radius,
@@ -345,7 +312,7 @@ def init_robots(ax_left, env):
 
     return scatters, circles, circles_original
 
-def init_lines(ax_h, ax_margin, ax_u, ax_beta, h_values_list, safety_margin_list, beta_values_list, env, ax_cost=None):
+def init_lines(ax_h, ax_margin, ax_u, ax_beta, env):
     """
     Initialize the lines for h, velocity, control inputs, and beta values.
     """
@@ -394,9 +361,6 @@ def init_lines(ax_h, ax_margin, ax_u, ax_beta, h_values_list, safety_margin_list
         lines_nom_u1.append(line_nom_u1)
         lines_nom_u2.append(line_nom_u2)
         
-        if ax_cost is not None:
-            line_cost, = ax_cost.plot([], [])
-            lines_cost.append(line_cost)
         
         ax_h.axhline(y=0, color='r', linestyle='--', linewidth=0.8)
         ax_margin.axhline(y=0, color='r', linestyle='--', linewidth=0.8)
@@ -453,49 +417,15 @@ def set_axes_and_legends(ax_left, ax_h, ax_margin, ax_u, ax_beta, env, ax_cost=N
         # ax_cost.legend()
         ax_cost.grid(False)
 
-def set_y_axis_limits(ax_h, ax_margin, ax_u, ax_beta,
-                      h_values_list, safety_margin_list,
-                      control_inputs_list, beta_values_list, cost_list, ax_cost=None):
+def set_y_axis_limits(ax_h, ax_margin, ax_u, ax_beta):
     ax_h.set_ylim(-0.5, 15.0)
     ax_margin.set_ylim(-0.5, 15.0)
     ax_u.set_ylim(-4, 4)
     # ax_beta.set_ylim(-0.1, 0.5)
     ax_beta.set_ylim(-0.1, 1.1)
-    if ax_cost is not None:
-        cost_min = min([np.min(cost) for cost in cost_list])
-        cost_max = max([np.max(cost) for cost in cost_list])
-        ax_cost.set_ylim(cost_min - 0.1 * abs(cost_min), cost_max + 0.1 * abs(cost_max))
+
        
 def compute_influence_factors(env, num, compute_factor_and_params):
-    """
-    Compute the influence factors between robots and obstacles.
-
-    For each robot, the function finds the obstacle that produces the highest influence
-    factor, and for each obstacle, the function finds the robot that produces the highest
-    influence factor.
-
-    Parameters
-    ----------
-    env : object
-        The environment object that contains lists of robots and obstacles.
-    num : int
-        The current frame number.
-    compute_factor_and_params : function
-        A function that computes the influence factor and additional parameters given a
-        robot index, an obstacle index, and a time index. It should return a tuple whose
-        first element is the factor.
-
-    Returns
-    -------
-    robot_factors : list of float
-        The maximum influence factor for each robot.
-    robot_best_obs : list of int
-        The index of the obstacle that has the most influence on each robot.
-    obstacle_factors : list of float
-        The maximum influence factor for each obstacle.
-    obstacle_best_robot : list of int
-        The index of the robot that has the most influence on each obstacle.
-    """
     # Use time_index = num - 1 (or 0 if num is 0) for indexing into your state histories.
     time_index = num - 1 if num > 0 else 0
 
@@ -506,8 +436,6 @@ def compute_influence_factors(env, num, compute_factor_and_params):
         best_factor = 0.0
         best_j = -1
         for j in range(len(env.obstacles)):
-            # compute_factor_and_params is expected to return a tuple,
-            # where the first element is the factor.
             f, _, _, _ = compute_factor_and_params(i, j, time_index)
             if f > best_factor:
                 best_factor = f
@@ -532,40 +460,6 @@ def compute_influence_factors(env, num, compute_factor_and_params):
     return robot_factors, robot_best_obs, obstacle_factors, obstacle_best_robot
 
 def compute_closest_obstacle_factors(env, num, compute_factor_and_params, state_histories, obs_state_list):
-    """
-    For each robot, find the obstacle that is closest (in Euclidean distance)
-    and compute the corresponding factor using the provided compute_factor_and_params
-    function. Also, for each obstacle, find the closest robot and compute its factor.
-    
-    Parameters
-    ----------
-    env : object
-        The environment object that contains lists of robots and obstacles.
-    num : int
-        The current frame number.
-    compute_factor_and_params : function
-        A function that computes the factor (and additional parameters) given a
-        robot index, an obstacle index, and a time index. It should return a tuple
-        whose first element is the factor.
-    state_histories : list of np.ndarray
-        The state history arrays for each robot. It is assumed that, for each robot,
-        state_histories[i][0, t] and state_histories[i][1, t] give the x and y positions.
-    obs_state_list : list of np.ndarray
-        The state history arrays for each obstacle. It is assumed that, for each obstacle,
-        obs_state_list[j][0, t] and obs_state_list[j][1, t] give the x and y positions.
-    
-    Returns
-    -------
-    robot_closest_factors : list of float
-        The computed factor for the closest obstacle for each robot.
-    robot_closest_obs : list of int
-        The index of the closest obstacle for each robot.
-    obstacle_closest_factors : list of float
-        The computed factor for the closest robot for each obstacle.
-    obstacle_closest_robot : list of int
-        The index of the closest robot for each obstacle.
-    """
-    # Use time_index = num - 1 (or 0 if num is 0) for indexing into the state histories.
     time_index = num - 1 if num > 0 else 0
 
     # For each robot, find the obstacle that is closest (minimum Euclidean distance)
@@ -615,21 +509,7 @@ def compute_closest_obstacle_factors(env, num, compute_factor_and_params, state_
     
 
 
-def animate(env, controllers=[], filename=None, save_ani=True):
-    """
-    Animate the trajectories of robots and obstacles in the environment.
-
-    Parameters
-    ----------
-    env : object
-        Environment object that contains robots, obstacles, and map size.
-    controllers : list
-        A list of controller objects for each robot.
-    filename : str
-        The name of the output .mp4 file to save the animation.
-    save_ani : bool
-        Whether to save the animation (mp4 and gif). If False, just visualize without saving.
-    """
+def animate(env, controllers, filename='traj', save_ani=True):
     (state_histories, control_inputs_list, h_values_list, beta_values_list, cons_values_list,
         obs_state_list, nominal_inputs_list, velocities_list, cost_list) = load_data_from_controller(env, controllers)
  
@@ -646,12 +526,12 @@ def animate(env, controllers=[], filename=None, save_ani=True):
     ax_margin = fig.add_subplot(gs[1, 2])   # row: 1, col: 2
 
     plt.subplots_adjust(
-        left=0.08,   # 整个图像左边缘
-        right=0.95,  # 整个图像右边缘
-        top=0.90,    # 整个图像上边缘
-        bottom=0.15, # 整个图像下边缘
-        wspace=0.25, # 子图之间水平间隔
-        hspace=0.35  # 子图之间垂直间隔
+        left=0.08,   
+        right=0.95,  
+        top=0.90,    
+        bottom=0.15, 
+        wspace=0.25, 
+        hspace=0.35  
     )
 
     obstacle_patches, obs_patches_original, obstacle_texts = init_obstacles(ax_left, obs_state_list, env)
@@ -659,12 +539,7 @@ def animate(env, controllers=[], filename=None, save_ani=True):
     
     (lines_h, lines_margin, lines_u1, lines_u2, 
      lines_beta, lines_beta_u, lines_beta_u_bar, lines_nom_u1, lines_nom_u2,
-     lines_cost) = init_lines(
-         ax_h, ax_margin, ax_u, ax_beta,
-         h_values_list, safety_margin_list, beta_values_list,
-         env,
-         ax_cost=None   
-    )
+     lines_cost) = init_lines(ax_h, ax_margin, ax_u, ax_beta,env)
      
     ax_left.set_aspect('equal', adjustable='box')
     ax_left.set_xlim(env.mapsize[0]-0.2, env.mapsize[1]+0.2)
@@ -698,10 +573,7 @@ def animate(env, controllers=[], filename=None, save_ani=True):
     ax_beta.legend()
     ax_beta.grid(False)
     
-    set_y_axis_limits(ax_h, ax_margin, ax_u, ax_beta,
-                      h_values_list, safety_margin_list, 
-                      control_inputs_list, beta_values_list, 
-                      cost_list)
+    set_y_axis_limits(ax_h, ax_margin, ax_u, ax_beta)
 
     def init_func():
         for scat, circle in zip(scatters, circles):
@@ -792,8 +664,6 @@ def animate(env, controllers=[], filename=None, save_ani=True):
                 # obstacle_texts[idx].set_position((obs_x, obs_y))
             r_eff_obs = env.obstacles[idx].radius
             obs_patch.set_radius(r_eff_obs)
-
-        previous_robot_delta = [0.0 for _ in range(1)]  # 根据你的机器人数量初始化
 
         for i in range(len(env.robots)):
             best_j = robot_best_obs[i]

@@ -1,10 +1,6 @@
-import time
 import numpy as np
 import casadi as ca
-from scipy.stats import norm
-from util.util import log_info
 
-# obstacle has uncertain position. robot use cvar cbf controller
 class DCLFCVARDCBF:
     def __init__(self, robot, obstacles, all_robots, params):
         self.type = 'cvarbf'
@@ -18,7 +14,7 @@ class DCLFCVARDCBF:
 
         self.N = params.get("N", 5)  
 
-        self.w_a = 1 # weight for following the nominalinput
+        self.w_a = 1  
 
         self.hlog = []
         self.cons_log = []
@@ -30,7 +26,7 @@ class DCLFCVARDCBF:
         self.prev_solu = None
         self.prev_prev_solu = None
 
-        self.update_pmf(obstacles, all_robots) # if no control input noise
+        self.update_pmf(obstacles, all_robots)  
 
     def update_pmf(self, obstacles, all_robots):
         self.robot_pmf = []
@@ -57,31 +53,17 @@ class DCLFCVARDCBF:
             self.obs_wu_samples.append(obs_wu_samples)
             self.obs_wx_samples.append(obs_wx_samples)
 
-    
-
-    
-    def beta_tune(self, h, c=0.5):
-        if self.beta_int is not None:
-            if isinstance(h, ca.MX):
-                beta = ca.DM(self.beta_int)  # CasADi DM type
-            else:
-                beta = float(self.beta_int)  # Python float
+    def beta_value(self, h):
+        if isinstance(h, ca.MX):
+            beta = ca.DM(self.beta_int) 
         else:
-            if isinstance(h, ca.MX):
-                beta = 1 - ca.exp(-c * h)  # CasADi MX operation
-                beta = ca.fmax(beta, ca.DM(0.0001))  # Minimum value of 0.0001
-            else:
-                beta = 1 - np.exp(-c * h)  # NumPy operation
-                beta = max(float(beta), 0.0001)
+            beta = float(self.beta_int)  
         return beta
 
     def solve_opt(self, t, obstacles, all_robots, u_n = None):
-        # start_time = time.time()
         x = self.robot.x_curr
         target = self.robot.target
-        # print(f"x: {x}") #  robot is a reference therefore x is updated
         u = ca.MX.sym(f'u_{t}', self.robot.m, 1)
-        # delta = ca.MX.sym(f'delta_{t}')
         n_zeta = len(obstacles) + len(all_robots) - 1
         n_eta = n_zeta * self.S
         if self.robot.type == "doubleint" or self.robot.type == "singleint":
@@ -95,7 +77,6 @@ class DCLFCVARDCBF:
         lbg = []
         ubg = []
 
-        # DCLF constraint  
         cost = 0
 
         if u_n is None:
@@ -105,46 +86,11 @@ class DCLFCVARDCBF:
 
 
         zeta_index = 0
-        for iRobot in range(len(all_robots)):
-            hsk1_list = []
-            hsk2_list = []
-            if all_robots[iRobot].id != self.robot.id:
-                offset = zeta_index * self.S
-                x_other = all_robots[iRobot].x_curr
-                for s in range(self.S):
-                    
-                    wu_s = self.robot_wu_samples[self.robot.id][s].reshape(-1, 1)
-                    wx_s = self.robot_wx_samples[self.robot.id][s].reshape(-1, 1)
-                    x_k1 = self.robot.dynamics_uncertain(x, u, wu_s, wx_s)
-                    x_k2 = self.robot.dynamics_uncertain(x_k1, u, wu_s, wx_s)
-                    wu_s = self.robot_wu_samples[iRobot][s].reshape(-1, 1)
-                    wx_s = self.robot_wx_samples[iRobot][s].reshape(-1, 1)
-                    x_other_s = x_other + 0.5 * wu_s * self.robot.dt + wx_s # current state of the other robot
-
-                    h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, x_other_s, None, all_robots[iRobot].radius + self.robot.radius, htype=self.htype)
-                    hs_k1 = d_h + h_k
-                    hsk1_list.append(hs_k1)
-
-                constraints.append(-ca.vertcat(*hsk1_list) - zeta[zeta_index]*ca.DM.ones((self.S, 1)) - eta[offset:offset + self.S])
-                lbg.extend([-ca.inf] * self.S)
-                ubg.extend([0] * self.S)
-                constraints.append(eta[offset:offset + self.S])
-                lbg.extend([0] * self.S)
-                ubg.extend([ca.inf] * self.S)
-                psi1_k = -(zeta[zeta_index] + (1 / self.beta_tune(h_k)) * ca.dot(self.robot_pmf[0], eta[offset:offset + self.S])) + (-1 + self.gamma) * h_k
-                constraints.append(psi1_k)
-                lbg.append(0)
-                ubg.append(ca.inf)
-        
-            
-                zeta_index += 1
-
 
         # robot-obstalces constraints
         for iObs in range(len(obstacles)):
             dt = self.robot.dt
             hsk1_list = []
-            hsk2_list = []
             offset = (iObs + len(all_robots) - 1) * self.S
             for s in range(self.S):
 
@@ -174,7 +120,7 @@ class DCLFCVARDCBF:
             constraints.append(eta[offset:offset + self.S])
             lbg.extend([0] * self.S)
             ubg.extend([ca.inf] * self.S)
-            psi1_k = -(zeta[zeta_index] + (1 / self.beta_tune(h_k)) * ca.dot(self.obs_pmf[iObs], eta[offset:offset + self.S])) + (-1 + self.gamma) * h_k
+            psi1_k = -(zeta[zeta_index] + (1 / self.beta_value(h_k)) * ca.dot(self.obs_pmf[iObs], eta[offset:offset + self.S])) + (-1 + self.gamma) * h_k
             constraints.append(psi1_k)
             lbg.append(0)
             ubg.append(ca.inf)
@@ -235,11 +181,10 @@ class DCLFCVARDCBF:
         }
         opts = {"ipopt.print_level": 0, "print_time": 0}
         solver = ca.nlpsol('solver', 'ipopt', nlp, opts)
-        # solver = ca.qpsol('solver', 'osqp', nlp, opts)
 
         n_vars = opt_vars.numel()
         # --- Construct initial guess ---
-        x0 = np.zeros((n_vars, 1))# opt_vars = [u, delta, zeta, eta]
+        x0 = np.zeros((n_vars, 1))
         if self.prev_solu is not None and len(self.prev_solu) >= n_vars:
             x0[:n_vars,0] = self.prev_solu[:n_vars,0]
         else:
@@ -269,16 +214,6 @@ class DCLFCVARDCBF:
         return x_k1, u_opt, status
 
     def update_logs(self, sol, sol_g, sol_cost, obstacles, all_robots):
-        """
-        After the solver finishes, we have 'sol_g' = solver["g"].full().flatten(),
-        i.e., the *residuals* or the final constraints evaluation. 
-        We want to:
-        - Evaluate the nominalh_k for each obstacle/robot to store in h_list
-        - Evaluate the corresponding beta for each h_k
-        - Extract the CVaR values (psi1_k, psi1_k1, psi2_k, etc.) from sol_g
-            using the correct indexing.
-        """
-
         x      = self.robot.x_curr
         uopt   = sol[0:self.robot.m].reshape(-1, 1)
         x_k1   = self.robot.dynamics(x, uopt)
@@ -288,30 +223,7 @@ class DCLFCVARDCBF:
         cons_list  = []
   
 
-        # We need to replicate how constraints were appended in solve_opt:
-        c_idx = 0  # this will move across sol_g constraints
-        ## 2a) First, handle other robots
-        for iRobot in range(len(all_robots)):
-            if all_robots[iRobot].id == self.robot.id:
-                continue  
-            # Evaluate the actual barrier function for logging
-            x_other = all_robots[iRobot].x_curr
-            h_k, _ = self.robot.agent_barrier_dt(
-                x, x_k1, 
-                x_other, 
-                None,  # trajectory if needed
-                all_robots[iRobot].radius + self.robot.radius, 
-                htype=self.htype
-                )
-            h_list.append(h_k)
-            beta_list.append(self.beta_tune(h_k))
-
-            psi1_k_val = sol_g[c_idx + 2*self.S]
-            cons_list.append(psi1_k_val)
-            c_idx += (2*self.S + 1)
-            # zeta_index += 1  
-                
-        ## 2b) Next, handle obstacles
+        c_idx = 0      
         for iObs in range(len(obstacles)):
             pre_obs_pos   = obstacles[iObs].x_curr
             pre_obs_state = np.vstack((pre_obs_pos, obstacles[iObs].velocity_xy[:2]))  # equal to obstacle[iObs].trajectory
@@ -323,7 +235,7 @@ class DCLFCVARDCBF:
                 htype=self.htype
             )
             h_list.append(h_k)
-            beta_list.append(self.beta_tune(h_k))
+            beta_list.append(self.beta_value(h_k))
 
             psi1_k_val = sol_g[c_idx + 2*self.S]
             cons_list.append(psi1_k_val)

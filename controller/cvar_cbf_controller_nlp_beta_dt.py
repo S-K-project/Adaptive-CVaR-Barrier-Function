@@ -1,11 +1,5 @@
-import time
 import numpy as np
 import casadi as ca
-from scipy.stats import norm
-from util.util import log_info
-import io
-# from wurlitzer import pipes
-import multiprocessing as mp
 
     
 class DCLFCVARDCBF:
@@ -21,7 +15,7 @@ class DCLFCVARDCBF:
         self.gamma = 0.1
         self.N = params.get("N", 5)  
 
-        self.w_a = 1 # weight for following the nominalinput
+        self.w_a = 1  
 
         self.hlog = []
         self.cons_log = []
@@ -33,7 +27,7 @@ class DCLFCVARDCBF:
         self.prev_solu = None
         self.prev_prev_solu = None
 
-        self.update_pmf(obstacles, all_robots) # if no control input noise
+        self.update_pmf(obstacles, all_robots) 
 
     def update_pmf(self, obstacles, all_robots):
         self.robot_pmf = []
@@ -86,41 +80,6 @@ class DCLFCVARDCBF:
 
 
         zeta_index = 0
-        for iRobot in range(len(all_robots)):
-            hsk1_list = []
-            hsk2_list = []
-            if all_robots[iRobot].id != self.robot.id:
-                offset = zeta_index * self.S
-                x_other = all_robots[iRobot].x_curr
-                for s in range(self.S):
-                    
-                    wu_s = self.robot_wu_samples[self.robot.id][s].reshape(-1, 1)
-                    wx_s = self.robot_wx_samples[self.robot.id][s].reshape(-1, 1)
-                    x_k1 = self.robot.dynamics_uncertain(x, u, wu_s, wx_s)
-                    x_k2 = self.robot.dynamics_uncertain(x_k1, u, wu_s, wx_s)
-                    wu_s = self.robot_wu_samples[iRobot][s].reshape(-1, 1)
-                    wx_s = self.robot_wx_samples[iRobot][s].reshape(-1, 1)
-                    x_other_s = x_other + 0.5 * wu_s * self.robot.dt + wx_s # current state of the other robot
-
-                    h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, x_other_s, None, all_robots[iRobot].radius + self.robot.radius, htype=self.htype)
-                    hs_k1 = d_h + h_k
-                    hsk1_list.append(hs_k1)
- 
-
-                constraints.append(-ca.vertcat(*hsk1_list) - zeta[zeta_index]*ca.DM.ones((self.S, 1)) - eta[offset:offset + self.S])
-                lbg.extend([-ca.inf] * self.S)
-                ubg.extend([0] * self.S)
-                constraints.append(eta[offset:offset + self.S])
-                lbg.extend([0] * self.S)
-                ubg.extend([ca.inf] * self.S)
-                psi1_k = -(zeta[zeta_index] + (1 / self.beta) * ca.dot(self.robot_pmf[0], eta[offset:offset + self.S])) + (-1 + self.gamma) * h_k
-                constraints.append(psi1_k)
-                lbg.append(0)
-                ubg.append(ca.inf)
-      
-                zeta_index += 1
-
-
         # robot-obstalces constraints
         for iObs in range(len(obstacles)):
             dt = self.robot.dt
@@ -179,7 +138,6 @@ class DCLFCVARDCBF:
             ## velocity constraints
             x_k1 = self.robot.dynamics(x, u)
             if self.robot.type in ["doubleint", "doubleint_v1"]:
-                # Double integrator: vx and vy constraints
                 velocity_indices = [(2, self.robot.x_min[2, 0], self.robot.x_max[2, 0]),  # vx
                                     (3, self.robot.x_min[3, 0], self.robot.x_max[3, 0])]  # vy
     
@@ -222,11 +180,10 @@ class DCLFCVARDCBF:
         }
         opts = {"ipopt.print_level": 0, "print_time": 0}
         solver = ca.nlpsol('solver', 'ipopt', nlp, opts)
-        # solver = ca.qpsol('solver', 'osqp', nlp, opts)
 
         n_vars = opt_vars.numel()
         # --- Construct initial guess ---
-        x0 = np.zeros((n_vars, 1))# opt_vars = [u, delta, zeta, eta]
+        x0 = np.zeros((n_vars, 1))
         if self.prev_solu is not None and len(self.prev_solu) >= n_vars:
             x0[:n_vars,0] = self.prev_solu[:n_vars,0]
         else:
@@ -279,33 +236,10 @@ class DCLFCVARDCBF:
         beta_list  = []
         cons_list  = []
    
-        # We need to replicate how constraints were appended in solve_opt:
-        c_idx = 0  # this will move across sol_g constraints
-        ## 2a) First, handle other robots
-        for iRobot in range(len(all_robots)):
-            if all_robots[iRobot].id == self.robot.id:
-                continue  
-            # Evaluate the actual barrier function for logging
-            x_other = all_robots[iRobot].x_curr
-            h_k, _ = self.robot.agent_barrier_dt(
-                x, x_k1, 
-                x_other, 
-                None,  # trajectory if needed
-                all_robots[iRobot].radius + self.robot.radius, 
-                htype=self.htype
-                )
-            h_list.append(h_k)
-            beta_list.append( self.beta)
-
-            psi1_k_val = sol_g[c_idx + 2*self.S]
-            cons_list.append(psi1_k_val)
-            c_idx += (2*self.S + 1)
-            # zeta_index += 1  
-
-        ## 2b) Next, handle obstacles
+        c_idx = 0  
         for iObs in range(len(obstacles)):
             pre_obs_pos   = obstacles[iObs].x_curr
-            pre_obs_state = np.vstack((pre_obs_pos, obstacles[iObs].velocity_xy[:2]))  # equal to obstacle[iObs].trajectory
+            pre_obs_state = np.vstack((pre_obs_pos, obstacles[iObs].velocity_xy[:2]))  
             h_k, _ = self.robot.agent_barrier_dt(
                 x, x_k1, 
                 pre_obs_state, 

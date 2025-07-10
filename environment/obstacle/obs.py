@@ -44,7 +44,7 @@ class Obstacle(ObjectBase):
        
     def dynamics(self, x, u):
         if max(self.noise[1]) > 1e-5:
-            u_noise = self.u_disturbance(u)  # add noise to velocity when obstalce moves, this noise is not used for calculate cvar cbf constraint of obstalces  
+            u_noise = self.u_disturbance(u)  
         else:
             u_noise = np.zeros((self.m, 1))
         if max(self.noise[0]) > 1e-5:

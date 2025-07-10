@@ -2,7 +2,6 @@ import numpy as np
 import casadi as ca
 from scipy.stats import norm
 
-# obstacle has uncertain position. but robot will not consider this uncertainty
 class DCLFDCBF:
     def __init__(self, robot,  obstacles, all_robots, params):
         self.type = 'cbf'
@@ -13,7 +12,7 @@ class DCLFDCBF:
 
         self.N = params.get("N", 5)  
 
-        self.w_a = 1 # weight for following the nominalinput
+        self.w_a = 1  
 
         self.hlog = []
         self.cons_log = []
@@ -42,18 +41,7 @@ class DCLFDCBF:
 
                 
         x_k1 = self.robot.dynamics(x, u)
-        x_k2 = self.robot.dynamics(x_k1, u)
-        
-        ## robot-robots constraints
-        for iRobot in range(len(all_robots)):
-            if all_robots[iRobot].id != self.robot.id:
-                x_other = all_robots[iRobot].x_curr
-                h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, x_other, None,all_robots[iRobot].radius+ self.robot.radius)
-                constraints.append(d_h + self.gamma * h_k)
-
-                lbg.append(0)
-                ubg.append(ca.inf)
-
+    
         ## robot-obstalces constraints
         for iObs in range(len(obstacles)):
             dt = self.robot.dt
@@ -133,7 +121,6 @@ class DCLFDCBF:
         solution = solver(x0=x0, lbx=lbx, ubx=ubx, lbg=lbg, ubg=ubg)
 
         status = solver.stats()['return_status']   
-        # print("Solver Status:", status)
         if status in ['Solve_Succeeded', 'Solved_To_Acceptable_Level']:
             sol = solution['x'].full().flatten()
             sol_g = solution['g'].full().flatten()
@@ -160,14 +147,6 @@ class DCLFDCBF:
         cons_list = []
         
         c_idx = 0
-
-        for iRobot in range(len(all_robots)):
-            if all_robots[iRobot].id != self.robot.id:
-                x_other = all_robots[iRobot].x_curr
-                h_k, d_h = self.robot.agent_barrier_dt(x, x_k1, x_other, None, all_robots[iRobot].radius + self.robot.radius)
-
-                cons_list.append(sol_g[c_idx])
-                c_idx += 1
 
         for iObs in range(len(obstacles)):
             pre_obs_pos = obstacles[iObs].x_curr

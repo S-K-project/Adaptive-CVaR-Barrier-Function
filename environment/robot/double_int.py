@@ -17,7 +17,6 @@ class DoubleIntegratorRobot(ObjectBase):
         self.type = "doubleint"
         self.behavior_type = 'only_obs'
         
-        # Define specific dynamics for the double integrator
         self.A = np.array([
             [1, 0, dt, 0],
             [0, 1, 0, dt],
@@ -37,8 +36,6 @@ class DoubleIntegratorRobot(ObjectBase):
         self.u_min = np.array([u_min[0], u_min[1]]).reshape(-1, 1)
         self.u_max = np.array([u_max[0], u_max[1]]).reshape(-1, 1)
     
-        # self.u_min= np.array([-8, -8]).reshape(-1, 1)
-        # self.u_max =  np.array([8, 8]).reshape(-1, 1)
         self.x_min = np.array([mapsize[0,0], 
                                mapsize[2,0], 
                                -2, -2]).reshape(-1, 1)
@@ -50,7 +47,6 @@ class DoubleIntegratorRobot(ObjectBase):
         self.ulog = [np.zeros((self.m, 1))]
 
         self.u = np.zeros((self.m, 1)).reshape(-1, 1)
-        # self.target = np.array(target).reshape(-1, 1)
         
         self.P = np.eye(self.n) # state cost
         self.Q = np.eye(2) 
@@ -64,7 +60,6 @@ class DoubleIntegratorRobot(ObjectBase):
         self.x_curr = x_k1
         self.xlog.append(self.x_curr)
         self.ulog.append(uk)
-        # self.u_cost += uk.T @ uk * self.dt
         self.velocity_xy = self.x_curr[2:4].reshape(-1, 1)
                 
     def reset(self):
@@ -73,30 +68,25 @@ class DoubleIntegratorRobot(ObjectBase):
         self.ulog = [np.zeros((self.m, 1))]
         self.u_cost = 0
 
-    def dynamics(self, x, u): # real dynamics, execute the control input, not used for calculate cvar cbf constraint
-        # check if x and u are nx1 and mx1 vectors
+    def dynamics(self, x, u): 
         assert x.shape == (self.n, 1), f"x shape: {x.shape}"
         assert u.shape == (self.m, 1), f"u shape: {u.shape}"
-        if max(self.noise[1]) > 1e-5: # control noise
-            u_noise = self.u_disturbance(u) # dont add noise for x_next in optimization process, add noise to control input for real movement
+        if max(self.noise[1]) > 1e-5:
+            u_noise = self.u_disturbance(u) 
         else:
             u_noise = np.zeros((self.m,1))
-        if max(self.noise[0]) > 1e-5: # statte noise
+        if max(self.noise[0]) > 1e-5: 
             x_noise = self.x_disturbance(x)
         else:
             x_noise = np.zeros((self.n,1))
         return self.A @ x + self.B @ (u + u_noise) + x_noise  
     
     
-    def dynamics_uncertain(self, x, u, wu =np.zeros((2,1)), wx= np.zeros((4,1))): # used for calculate cvar cbf constraint
+    def dynamics_uncertain(self, x, u, wu =np.zeros((2,1)), wx= np.zeros((4,1))): 
         return self.A @ x + self.B @ (u + wu) + wx
     
 
     def nominal_input(self, X, G, d_min=0.05, k_v=0.5, k_a=2.5):
-        '''
-        nominalinput for CBF-QP (position control)
-        '''
-    
         G = np.copy(G.reshape(-1, 1))  # goal state
         v_max = np.sqrt(self.x_max[2]**2 + self.x_max[3]**2)
         a_max = np.sqrt(self.u_max[0]**2 + self.u_max[1]**2)
@@ -149,7 +139,7 @@ class DoubleIntegratorRobot(ObjectBase):
 
     
     def h_dist(self, x_k, obs_pos, radius, beta=1.05):
-        '''Computes CBF h(x) = ||x-x_obs||^2 - beta*d_min^2'''
+        '''Computes CBF h(x) = ||x-x_obs||^2 - d_min^2'''
         if is_casadi(x_k):
             h = ca.mtimes((x_k[0:2] - obs_pos[0:2]).T, (x_k[0:2] - obs_pos[0:2])) - beta*radius**2
         else:
@@ -164,7 +154,6 @@ class DoubleIntegratorRobot(ObjectBase):
         return h
     
     def h_vel(self, x_k, obs_pos, radius):
-        """Quadratic barrier function."""
         if is_casadi(x_k):
             vel_norm_sq  = ca.fmax(x_k[2]**2 + x_k[3]**2, 0)
             h = ca.mtimes((x_k[0:2] - obs_pos[0:2]).T, (x_k[0:2] - obs_pos[0:2])) - radius**2 - vel_norm_sq /(2* self.u_max[0])
@@ -210,6 +199,6 @@ class DoubleIntegratorRobot(ObjectBase):
             theta_val = (1.0 / rate) * np.log(1 + np.exp(-rate * dot_product)) 
             theta_val = float(theta_val)
             
-        h_vel = radius**2 * w * theta_val # TODO expanding radius is sqrt(h_vel)
+        h_vel = radius**2 * w * theta_val
         return  h_dist - h_vel
     
