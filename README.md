@@ -1,5 +1,5 @@
 # Safe Navigation in Uncertain Crowded Environments Using Risk Adaptive CVaR Barrier Functions
-
+https://www.youtube.com/watch?v=VHRnmXToLN8 
 ## Installation
 python 3.9.0
 
